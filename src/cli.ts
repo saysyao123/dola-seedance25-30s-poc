@@ -12,12 +12,14 @@ if (command !== 'observe') {
 const dolaUrl = process.env.DOLA_URL ?? 'https://www.dola.com/';
 const profileDir = process.env.DOLA_PROFILE_DIR ?? './user-data/dola-poc';
 const captureDir = process.env.CAPTURE_DIR ?? './captures/raw';
+const browserChannel = process.env.DOLA_BROWSER_CHANNEL ?? 'chrome';
 const captureFile = resolve(captureDir, `dola-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 
 const context = await startObserver({
   dolaUrl,
   profileDir,
   captureFile,
+  browserChannel,
 });
 
 await new Promise<void>((resolveDone) => {
