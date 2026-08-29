@@ -1,57 +1,127 @@
 (() => {
-  if (window.__DOLA_SEEDANCE_POC_HOOK__) return;
-  window.__DOLA_SEEDANCE_POC_HOOK__ = true;
+  if (window.__DOLA_SEEDANCE_INSPECTOR_HOOK__) return;
+  window.__DOLA_SEEDANCE_INSPECTOR_HOOK__ = true;
 
-  const SECRET_KEY = /(cookie|authorization|token|session|signature|sign|credential|password|passwd|secret|ttwid|web_id|device_id|fp)/i;
-  const VIDEO_HINT = /(seedance|video|duration|ability_type|generation|creation|completion|chat)/i;
+  const SECRET_KEY = /(cookie|authorization|token|session|signature|sign|credential|password|passwd|secret|ttwid|web_id|device_id|csrf|verify|fingerprint|\bfp\b)/i;
+  const VIDEO_HINT = /(seedance|video|duration|ability_type|ability_param|generation|creation|completion|chat|task|poll|result|vid)/i;
+  const API_HINT = /(\/api\/|\/chat\/|\/conversation\/|\/generation\/|\/task\/)/i;
+  const MAX_TEXT = 12000;
+
+  function sanitizeText(input) {
+    let text = String(input ?? '');
+    text = text.replace(/(bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
+    text = text.replace(/((?:token|sessionid|session_id|signature|sign|authorization|ttwid|s_v_web_id|csrf|verify|fingerprint|device_id|fp)\s*[:=]\s*)[^&\s,}\]]+/gi, '$1[REDACTED]');
+    return text.length <= MAX_TEXT ? text : `${text.slice(0, MAX_TEXT)}…[TRUNCATED]`;
+  }
 
   function redactObject(value, depth = 0) {
     if (depth > 12) return '[MAX_DEPTH]';
-    if (Array.isArray(value)) return value.slice(0, 100).map((v) => redactObject(v, depth + 1));
+    if (Array.isArray(value)) return value.slice(0, 100).map((item) => redactObject(item, depth + 1));
     if (value && typeof value === 'object') {
       const out = {};
       for (const [key, val] of Object.entries(value)) {
-        out[key] = SECRET_KEY.test(key) ? '[REDACTED]' : redactObject(val, depth + 1);
+        if (SECRET_KEY.test(key)) {
+          out[key] = '[REDACTED]';
+        } else {
+          out[key] = redactObject(val, depth + 1);
+        }
       }
       return out;
     }
-    if (typeof value === 'string' && value.length > 8000) return `${value.slice(0, 8000)}…[TRUNCATED]`;
+    if (typeof value === 'string') return sanitizeText(value);
     return value;
   }
 
   function sanitizeUrl(input) {
     try {
-      const u = new URL(String(input), location.href);
-      for (const key of [...u.searchParams.keys()]) {
-        if (SECRET_KEY.test(key)) u.searchParams.set(key, '[REDACTED]');
+      const url = new URL(String(input), location.href);
+      for (const key of [...url.searchParams.keys()]) {
+        if (SECRET_KEY.test(key)) url.searchParams.set(key, '[REDACTED]');
       }
-      return u.toString();
+      return sanitizeText(url.toString());
     } catch {
-      return String(input).slice(0, 1200);
+      return sanitizeText(input);
     }
   }
 
   function parseBody(body) {
     if (body == null) return null;
+
     if (typeof body === 'string') {
-      try { return redactObject(JSON.parse(body)); } catch { return body.length <= 8000 ? body : `${body.slice(0, 8000)}…[TRUNCATED]`; }
+      try {
+        return redactObject(JSON.parse(body));
+      } catch {
+        if (body.includes('=')) {
+          try {
+            const params = new URLSearchParams(body);
+            if ([...params.keys()].length) return redactObject(Object.fromEntries(params.entries()));
+          } catch {}
+        }
+        return sanitizeText(body);
+      }
     }
-    if (body instanceof URLSearchParams) return redactObject(Object.fromEntries(body.entries()));
+
+    if (body instanceof URLSearchParams) {
+      return redactObject(Object.fromEntries(body.entries()));
+    }
+
     if (body instanceof FormData) {
-      const obj = {};
-      for (const [k, v] of body.entries()) obj[k] = typeof v === 'string' ? v : `[File:${v.name}]`;
-      return redactObject(obj);
+      const object = {};
+      for (const [key, value] of body.entries()) {
+        object[key] = typeof value === 'string' ? value : `[File:${value.name}]`;
+      }
+      return redactObject(object);
     }
-    return `[${Object.prototype.toString.call(body)}]`;
+
+    if (body instanceof Blob) return `[Blob:${body.type || 'unknown'}:${body.size}]`;
+    if (body instanceof ArrayBuffer) return `[ArrayBuffer:${body.byteLength}]`;
+
+    return sanitizeText(Object.prototype.toString.call(body));
   }
 
-  function candidate(url, body) {
-    const bodyText = typeof body === 'string' ? body : (() => { try { return JSON.stringify(body); } catch { return ''; } })();
-    return VIDEO_HINT.test(String(url)) || VIDEO_HINT.test(bodyText);
+  function shouldCapture(method, url, body) {
+    const bodyText = typeof body === 'string'
+      ? body
+      : (() => {
+          try { return JSON.stringify(body); } catch { return ''; }
+        })();
+    const upperMethod = String(method || 'GET').toUpperCase();
+    return VIDEO_HINT.test(String(url)) || VIDEO_HINT.test(bodyText) || API_HINT.test(String(url)) || upperMethod !== 'GET';
   }
 
   function emit(payload) {
     window.postMessage({ source: 'dola-seedance25-poc', payload }, location.origin);
+  }
+
+  function parseResponseText(text, contentType) {
+    const sanitized = sanitizeText(text);
+    if (!sanitized) return null;
+    if (String(contentType || '').includes('json')) {
+      try { return redactObject(JSON.parse(sanitized)); } catch {}
+    }
+    try { return redactObject(JSON.parse(sanitized)); } catch {}
+    return sanitized;
+  }
+
+  async function captureFetchResponseBody(response, requestMeta, started) {
+    try {
+      const clone = response.clone();
+      const contentType = clone.headers.get('content-type') || '';
+      if (!/(json|text|event-stream)/i.test(contentType)) return;
+      const text = await clone.text();
+      emit({
+        kind: 'response',
+        transport: 'fetch',
+        at: new Date().toISOString(),
+        status: response.status,
+        url: sanitizeUrl(response.url || requestMeta.url),
+        elapsedMs: Date.now() - started,
+        contentType,
+        body: parseResponseText(text, contentType),
+      });
+    } catch {
+      // The observer must never interfere with the page if a response cannot be cloned/read.
+    }
   }
 
   const originalFetch = window.fetch;
@@ -60,21 +130,36 @@
     const method = init?.method || (typeof input !== 'string' && input?.method) || 'GET';
     const body = init?.body ?? null;
     const parsedBody = parseBody(body);
-    const shouldCapture = candidate(url, parsedBody);
+    const capture = shouldCapture(method, url, parsedBody);
     const started = Date.now();
 
-    if (shouldCapture) {
-      emit({ kind: 'request', transport: 'fetch', at: new Date().toISOString(), method, url: sanitizeUrl(url), body: parsedBody });
+    if (capture) {
+      emit({
+        kind: 'request',
+        transport: 'fetch',
+        at: new Date().toISOString(),
+        method,
+        url: sanitizeUrl(url),
+        body: parsedBody,
+      });
     }
 
     try {
       const response = await originalFetch.apply(this, arguments);
-      if (shouldCapture) {
-        emit({ kind: 'response', transport: 'fetch', at: new Date().toISOString(), status: response.status, url: sanitizeUrl(response.url || url), elapsedMs: Date.now() - started, contentType: response.headers.get('content-type') || null });
+      if (capture) {
+        void captureFetchResponseBody(response, { url }, started);
       }
       return response;
     } catch (error) {
-      if (shouldCapture) emit({ kind: 'error', transport: 'fetch', at: new Date().toISOString(), url: sanitizeUrl(url), message: String(error?.message || error) });
+      if (capture) {
+        emit({
+          kind: 'error',
+          transport: 'fetch',
+          at: new Date().toISOString(),
+          url: sanitizeUrl(url),
+          message: sanitizeText(error?.message || error),
+        });
+      }
       throw error;
     }
   };
@@ -83,21 +168,49 @@
   const originalSend = XMLHttpRequest.prototype.send;
 
   XMLHttpRequest.prototype.open = function(method, url) {
-    this.__dolaPoc = { method, url };
+    this.__dolaSeedanceInspector = { method, url };
     return originalOpen.apply(this, arguments);
   };
 
   XMLHttpRequest.prototype.send = function(body) {
-    const meta = this.__dolaPoc || { method: 'GET', url: '' };
+    const meta = this.__dolaSeedanceInspector || { method: 'GET', url: '' };
     const parsedBody = parseBody(body);
-    const shouldCapture = candidate(meta.url, parsedBody);
+    const capture = shouldCapture(meta.method, meta.url, parsedBody);
     const started = Date.now();
-    if (shouldCapture) emit({ kind: 'request', transport: 'xhr', at: new Date().toISOString(), method: meta.method, url: sanitizeUrl(meta.url), body: parsedBody });
-    if (shouldCapture) {
+
+    if (capture) {
+      emit({
+        kind: 'request',
+        transport: 'xhr',
+        at: new Date().toISOString(),
+        method: meta.method,
+        url: sanitizeUrl(meta.url),
+        body: parsedBody,
+      });
+
       this.addEventListener('loadend', () => {
-        emit({ kind: 'response', transport: 'xhr', at: new Date().toISOString(), status: this.status, url: sanitizeUrl(this.responseURL || meta.url), elapsedMs: Date.now() - started, contentType: this.getResponseHeader('content-type') || null });
+        let responseBody = null;
+        try {
+          if (this.responseType === '' || this.responseType === 'text') {
+            responseBody = parseResponseText(this.responseText || '', this.getResponseHeader('content-type') || '');
+          } else if (this.responseType === 'json') {
+            responseBody = redactObject(this.response);
+          }
+        } catch {}
+
+        emit({
+          kind: 'response',
+          transport: 'xhr',
+          at: new Date().toISOString(),
+          status: this.status,
+          url: sanitizeUrl(this.responseURL || meta.url),
+          elapsedMs: Date.now() - started,
+          contentType: this.getResponseHeader('content-type') || null,
+          body: responseBody,
+        });
       }, { once: true });
     }
+
     return originalSend.apply(this, arguments);
   };
 })();
