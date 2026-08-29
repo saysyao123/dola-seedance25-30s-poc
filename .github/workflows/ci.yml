@@ -16,3 +16,5 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm test
+      - run: node --check extension/content.js
+      - run: node --check extension/page-hook.js
