@@ -1,25 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "Dola Seedance 2.5 POC Panel",
-  "version": "0.1.0",
-  "description": "In-page Dola observer panel for Seedance 2.5 request research using the user's own logged-in session.",
-  "permissions": ["storage", "downloads"],
-  "host_permissions": ["https://www.dola.com/*", "https://dola.com/*"],
+  "name": "Dola Seedance Inspector",
+  "version": "0.3.0",
+  "description": "In-page Seedance request inspector for the user's current Chrome Dola session. No separate browser profile required.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://dola.com/*",
+    "https://*.dola.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://www.dola.com/*", "https://dola.com/*"],
+      "matches": [
+        "https://dola.com/*",
+        "https://*.dola.com/*"
+      ],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://dola.com/*",
+        "https://*.dola.com/*"
+      ],
       "js": ["content.js"],
       "css": ["styles.css"],
-      "run_at": "document_start"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["page-hook.js"],
-      "matches": ["https://www.dola.com/*", "https://dola.com/*"]
+      "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "Dola Seedance 2.5 POC"
+    "default_title": "Dola Seedance Inspector"
   }
 }
