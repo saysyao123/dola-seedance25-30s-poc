@@ -7,6 +7,7 @@ export type ObserverOptions = {
   dolaUrl: string;
   profileDir: string;
   captureFile: string;
+  browserChannel?: string;
 };
 
 function isDolaUrl(url: string): boolean {
@@ -58,6 +59,7 @@ export async function startObserver(options: ObserverOptions): Promise<BrowserCo
   const context = await chromium.launchPersistentContext(profileDir, {
     headless: false,
     viewport: null,
+    channel: options.browserChannel || undefined,
   });
 
   context.on('request', async (request) => {
@@ -78,6 +80,7 @@ export async function startObserver(options: ObserverOptions): Promise<BrowserCo
   await page.goto(options.dolaUrl, { waitUntil: 'domcontentloaded' });
 
   console.log(`\nDola observer is running.`);
+  console.log(`Browser channel: ${options.browserChannel || 'playwright chromium'}`);
   console.log(`Profile: ${profileDir}`);
   console.log(`Capture: ${captureFile}`);
   console.log(`Log into Dola manually in the visible browser, then run a normal video-generation test.`);
