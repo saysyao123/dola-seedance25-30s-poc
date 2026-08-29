@@ -1,72 +1,57 @@
-# Seedance Desktop Studio v0.1
+# Seedance Desktop Studio v0.2
 
-这是 clean-room 桌面版 POC 的第一阶段。
+Clean-room Windows desktop POC for multi-account Dola sessions plus a Codex-operable local task control plane.
 
-当前只验证一件事：
+## Implemented in this branch
 
-> 在一个 Electron 桌面程序中创建多个 Dola 账号，每个账号使用独立 persistent Chromium partition，并由用户在可见 Dola 页面中手动登录。
+- Electron desktop shell.
+- Multiple Dola account containers.
+- One persistent Chromium partition per account.
+- One long-lived Dola WebView per account.
+- Manual visible login; no Google password/TOTP storage.
+- Account switching and per-account session clearing.
+- Local JSON task queue.
+- Seedance task form in the desktop UI.
+- Loopback-only control server with random bearer token.
+- Machine-readable CLI for Codex: accounts/providers/tasks.
+- Provider gate that blocks automatic Dola dispatch until D2 is actually verified.
 
-## 当前已实现
-
-- Electron 桌面壳；
-- 添加多个 Dola 账号；
-- 每账号独立 `persist:dola_<id>` partition；
-- 每账号一个长期存在的 Dola WebView；
-- 账号切换；
-- Chromium 自动保留 Cookie / Local Storage；
-- 单独清除某个账号的本地会话；
-- 不接收、不保存 Google 密码或 TOTP；
-- 不实现指纹伪装；
-- 不实现账号自动轮换；
-- 不实现隐藏 Dola 30s 协议。
-
-## Windows 测试
-
-进入：
-
-```text
-apps/desktop
-```
-
-执行：
+## Run
 
 ```powershell
+cd apps/desktop
 npm install
+npm run check
 npm start
 ```
 
-程序启动后：
+In another terminal:
 
-1. 点击“添加 Dola 账号”；
-2. 为账号命名，例如 `Dola A`；
-3. 在右侧真实 Dola 页面中自行使用 Google 登录；
-4. 再添加 `Dola B`；
-5. 用另一个账号登录；
-6. 在 A/B 间切换，确认登录态互不影响；
-7. 关闭并重新启动应用，确认两个账号仍保持各自登录态。
+```powershell
+npm run studio -- health
+npm run studio -- accounts list
+```
 
-## G1 验收
+See `../../docs/CODEX_CONTROL_PLANE.md` for the complete Codex workflow.
+
+## D0 / D1 acceptance
 
 ```text
-[ ] Desktop launches
+[ ] Desktop launches on Windows x64
 [ ] Account A can log in manually
 [ ] Account B can log in manually
 [ ] A/B sessions do not leak into each other
 [ ] Switching accounts does not require re-login
 [ ] Restart keeps both Chromium sessions
 [ ] Clear session only clears the selected account
+[ ] npm run studio -- health works while desktop app is running
+[ ] Codex CLI can list/open accounts and create/list/cancel local tasks
 ```
 
-## 下一阶段
+## Important current limitation
 
-G1 通过后才进入：
+The local control plane is implemented, but the Dola automatic Seedance provider is intentionally not enabled yet.
 
-- Task Manager
-- 官方 BytePlus ModelArk Seedance 2.5 Provider
-- 4 秒 smoke test
-- 原生 30 秒 T2V
-- 原生 30 秒 I2V
-- 结果下载
-- Windows 打包
+`tasks dispatch` for `dola-web` will return `D2_GATE_NOT_PASSED` until a real user session verifies the normal Seedance 2.5 10s submit/SSE/conversation/result lifecycle.
 
-相关设计：`../../docs/DESKTOP_MULTI_ACCOUNT_PLAN.md`
+This keeps the product architecture stable without pretending the unverified provider path is complete.

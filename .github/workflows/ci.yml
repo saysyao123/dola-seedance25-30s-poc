@@ -19,8 +19,13 @@ jobs:
       - run: node --check extension/content.js
       - run: node --check extension/page-hook.js
       - run: node --check apps/desktop/src/main.js
+      - run: node --check apps/desktop/src/control-server.js
       - run: node --check apps/desktop/src/preload.js
       - run: node --check apps/desktop/src/renderer/app.js
+      - run: node --check apps/desktop/bin/seedance-studio.mjs
+      - name: Validate desktop package
+        run: >-
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('apps/desktop/package.json','utf8'));if(!p.scripts||!p.scripts.studio)throw new Error('desktop studio CLI script required');if(!p.scripts.check)throw new Error('desktop check script required');"
       - name: Validate extension manifest
         run: >-
           node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8'));if(m.manifest_version!==3)throw new Error('Manifest V3 required');const main=m.content_scripts.find(x=>Array.isArray(x.js)&&x.js.includes('page-hook.js'));if(!main||main.world!=='MAIN'||main.run_at!=='document_start')throw new Error('page-hook.js must run in MAIN world at document_start');"
