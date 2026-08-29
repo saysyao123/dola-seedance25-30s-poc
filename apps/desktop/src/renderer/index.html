@@ -10,12 +10,12 @@
   <aside class="sidebar">
     <div class="brand">
       <strong>Seedance Desktop Studio</strong>
-      <span>Multi-account POC</span>
+      <span>Multi-account + Codex Control Plane</span>
     </div>
     <button id="addAccount" class="primary">+ 添加 Dola 账号</button>
     <div id="accounts" class="accounts"></div>
     <div class="notice">
-      每个账号使用独立 Chromium Session。登录请直接在右侧 Dola 页面完成；本软件不收集 Google 密码或 TOTP。
+      每个账号使用独立 Chromium Session。首次登录请直接在中间 Dola 页面完成；本软件不收集 Google 密码或 TOTP。
     </div>
   </aside>
 
@@ -27,18 +27,55 @@
       </div>
       <div class="header-actions">
         <button id="reload" disabled>刷新 Dola</button>
-        <button id="clearSession" disabled>退出并清除本账号会话</button>
+        <button id="clearSession" disabled>清除本账号会话</button>
       </div>
     </header>
-
     <section id="empty" class="empty">
       <h1>多账号会话容器已就绪</h1>
-      <p>先添加一个账号。每个账号都有独立的 persistent partition，切换账号不会串 Cookie。</p>
+      <p>先添加一个账号。每个账号都有独立 persistent partition，切换账号不会串 Cookie。</p>
     </section>
-
     <section id="webviews" class="webviews"></section>
   </main>
 
+  <aside class="studio-panel">
+    <div class="panel-title">
+      <div>
+        <strong>Seedance Studio</strong>
+        <span>Codex 与桌面 UI 共用同一任务队列</span>
+      </div>
+      <button id="refreshTasks">刷新</button>
+    </div>
+    <form id="taskForm" class="task-form">
+      <label>Provider
+        <select id="provider">
+          <option value="dola-web">Dola Web · EXPERIMENTAL</option>
+          <option value="byteplus-seedance">BytePlus · PLANNED</option>
+        </select>
+      </label>
+      <div class="form-row">
+        <label>时长
+          <select id="duration">
+            <option value="10">10s</option>
+            <option value="30">30s</option>
+          </select>
+        </label>
+        <label>比例
+          <select id="ratio">
+            <option value="9:16">9:16</option>
+            <option value="16:9">16:9</option>
+            <option value="1:1">1:1</option>
+          </select>
+        </label>
+      </div>
+      <label>Prompt
+        <textarea id="prompt" rows="8" placeholder="输入 Seedance 提示词…"></textarea>
+      </label>
+      <button id="queueTask" class="primary" type="submit" disabled>加入任务队列</button>
+      <div class="gate-note">当前控制层已可被 Codex 调用。Dola 自动提交仍受 D2 Gate 保护；在真实 10s 请求生命周期验证前不会伪造 30s 请求。</div>
+    </form>
+    <div class="task-list-header"><strong>任务</strong><span id="taskCount">0</span></div>
+    <div id="tasks" class="tasks"></div>
+  </aside>
   <script src="./app.js"></script>
 </body>
 </html>
