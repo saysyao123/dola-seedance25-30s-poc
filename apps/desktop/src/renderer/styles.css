@@ -1,0 +1,67 @@
+:root {
+  font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+  color: #eef2ff;
+  background: #0b1020;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { display: grid; grid-template-columns: 280px 1fr; }
+button { font: inherit; }
+.sidebar {
+  height: 100vh;
+  padding: 18px;
+  background: #11182b;
+  border-right: 1px solid #26304a;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.brand { display: grid; gap: 4px; }
+.brand strong { font-size: 18px; }
+.brand span, .notice, .status, .account-copy small { color: #97a4bf; font-size: 12px; }
+.primary, header button {
+  border: 1px solid #354466;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #1b2742;
+  color: #fff;
+  cursor: pointer;
+}
+.primary { background: #3157d5; border-color: #3157d5; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.accounts { display: grid; gap: 8px; overflow: auto; }
+.account-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #151f36;
+  color: #eef2ff;
+  cursor: pointer;
+}
+.account-card.active { border-color: #5478f2; background: #1b2b50; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #6a7897; flex: 0 0 auto; }
+.account-card.active .dot { background: #69db8f; }
+.account-copy { display: grid; min-width: 0; }
+.account-copy strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notice { margin-top: auto; line-height: 1.6; padding: 12px; background: #0d1426; border-radius: 10px; }
+.workspace { min-width: 0; height: 100vh; display: grid; grid-template-rows: 66px 1fr; background: #080d19; }
+header {
+  padding: 10px 16px;
+  border-bottom: 1px solid #26304a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.active-name { font-weight: 700; margin-bottom: 4px; }
+.header-actions { display: flex; gap: 8px; }
+.empty { align-self: center; justify-self: center; max-width: 620px; text-align: center; color: #c9d2e7; padding: 30px; }
+.webviews { min-height: 0; position: relative; }
+.webview-wrapper { position: absolute; inset: 0; display: none; }
+.webview-wrapper.active { display: block; }
+webview { width: 100%; height: 100%; border: 0; background: #fff; }
