@@ -18,6 +18,9 @@ jobs:
       - run: npm test
       - run: node --check extension/content.js
       - run: node --check extension/page-hook.js
+      - run: node --check apps/desktop/src/main.js
+      - run: node --check apps/desktop/src/preload.js
+      - run: node --check apps/desktop/src/renderer/app.js
       - name: Validate extension manifest
         run: >-
           node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8'));if(m.manifest_version!==3)throw new Error('Manifest V3 required');const main=m.content_scripts.find(x=>Array.isArray(x.js)&&x.js.includes('page-hook.js'));if(!main||main.world!=='MAIN'||main.run_at!=='document_start')throw new Error('page-hook.js must run in MAIN world at document_start');"
