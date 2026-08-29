@@ -1,12 +1,13 @@
 {
   "name": "dola-seedance25-30s-poc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Browser-first POC for observing and validating Dola Seedance 2.5 video generation flows using the user's own logged-in session.",
   "scripts": {
     "dev": "tsx src/cli.ts",
     "observe": "tsx src/cli.ts observe",
+    "web": "tsx src/web/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
