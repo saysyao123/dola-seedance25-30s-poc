@@ -1,0 +1,42 @@
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+*.cookie
+*.cookies
+*.token
+*.session
+
+# Browser state
+user-data/
+profiles/
+.playwright/
+
+# Raw captures — never commit
+captures/raw/
+captures/private/
+*.har
+*.har.zip
+
+# Generated media / task artifacts
+outputs/
+downloads/
+*.mp4
+*.mov
+*.webm
+
+# Node / build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
