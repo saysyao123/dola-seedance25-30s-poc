@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seedance Desktop Studio</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <strong>Seedance Desktop Studio</strong>
+      <span>Multi-account POC</span>
+    </div>
+    <button id="addAccount" class="primary">+ 添加 Dola 账号</button>
+    <div id="accounts" class="accounts"></div>
+    <div class="notice">
+      每个账号使用独立 Chromium Session。登录请直接在右侧 Dola 页面完成；本软件不收集 Google 密码或 TOTP。
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <header>
+      <div>
+        <div id="activeName" class="active-name">尚未选择账号</div>
+        <div id="status" class="status">添加账号后即可在独立 Dola 会话中登录</div>
+      </div>
+      <div class="header-actions">
+        <button id="reload" disabled>刷新 Dola</button>
+        <button id="clearSession" disabled>退出并清除本账号会话</button>
+      </div>
+    </header>
+
+    <section id="empty" class="empty">
+      <h1>多账号会话容器已就绪</h1>
+      <p>先添加一个账号。每个账号都有独立的 persistent partition，切换账号不会串 Cookie。</p>
+    </section>
+
+    <section id="webviews" class="webviews"></section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
