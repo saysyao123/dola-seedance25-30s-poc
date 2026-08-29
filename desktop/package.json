@@ -1,0 +1,14 @@
+{
+  "name": "dola-seedance-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron multi-account Dola session shell for Seedance POC",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/renderer/app.js"
+  },
+  "devDependencies": {
+    "electron": "44.0.0"
+  }
+}
