@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Dola Seedance 2.5 POC Panel",
+  "version": "0.1.0",
+  "description": "In-page Dola observer panel for Seedance 2.5 request research using the user's own logged-in session.",
+  "permissions": ["storage", "downloads"],
+  "host_permissions": ["https://www.dola.com/*", "https://dola.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.dola.com/*", "https://dola.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page-hook.js"],
+      "matches": ["https://www.dola.com/*", "https://dola.com/*"]
+    }
+  ],
+  "action": {
+    "default_title": "Dola Seedance 2.5 POC"
+  }
+}
