@@ -1,124 +1,109 @@
-# Dola Seedance 2.5 30s POC
+# Dola Seedance 2.5 30s Desktop POC
 
-公开测试仓库，用于验证：在**本人合法登录且账户本身具有对应生成权益的 Dola 会话**中，识别并验证 Seedance 2.5 视频生成链路，重点研究原生 30 秒 T2V。
+公开测试仓库，用于验证：在**用户本人合法登录且账户本身具有对应生成权益的会话**中，识别并验证 Seedance 2.5 原生 30 秒 T2V，并逐步形成一个可长期使用的 Windows 多账号桌面工作台。
 
-## 默认使用方式：当前 Chrome + 页面内 Inspector
+## 2026-08-29 架构更新
 
-本项目已经正式取消“新开 Playwright 浏览器 / localhost 控制台”作为默认路径。
+通过对用户提供的“小柴多开器”Windows 安装包进行 clean-room 静态分析，确认其真正的产品架构是：
 
-现在的唯一默认用户路径是：
+- Electron 桌面容器
+- 每账号独立 persistent session partition
+- 每账号独立 Dola WebView/WebContents
+- 30 秒 Seedance 2.5 使用独立 desktop/native task lifecycle，而不是只修改网页 `duration`
+- SSE acknowledgement → conversation id → conversation chain polling → media result
+
+因此本项目的最终产品方向已经从“Chrome Extension 优先”调整为：
 
 ```text
-你平时正在使用的 Chrome
+Electron Desktop
 ↓
-保留当前 Google / Dola 登录状态
+Account Manager
 ↓
-安装 extension/ Chrome Extension
+每账号独立 Dola persistent session
 ↓
-打开 Dola 官方页面
+用户首次手动登录
 ↓
-右侧自动出现 Seedance Inspector
+Seedance Task Manager
 ↓
-直接在 Dola 原页面正常生成视频
+10s baseline / 30s capability POC
+↓
+SSE / conversation-chain / result
+↓
+Queue / History / Download
 ```
 
-不需要 Node.js，不需要命令行，不需要新的 Chrome Profile。
+详细分析：
 
-### 第一次安装只做 5 步
-
-1. 下载/克隆本仓库。
-2. 用你当前正在使用的 Chrome 打开 `chrome://extensions/`。
-3. 开启「开发者模式」。
-4. 点击「加载已解压的扩展程序」。
-5. 选择仓库里的 `extension` 文件夹。
-
-然后直接打开：
-
-`https://www.dola.com/`
-
-右侧会自动出现 **Seedance Inspector**，并默认开启候选请求观察。
-
-完整安装说明见：`extension/README.md`。
+- `docs/XIAOCHAI_STATIC_ANALYSIS.md`
+- `docs/MULTI_ACCOUNT_DESKTOP_ARCHITECTURE.md`
 
 ## 当前阶段
 
-**Phase P0 — Protocol Discovery / POC**
+**Phase D0 — Desktop Shell / Multi-account Foundation**
 
-当前只回答一个问题：
+第一目标仍然不是批量跑任务，而是：
 
-> 能否在不自动注册、不绕过验证码、不绕过账户权限或服务端访问控制的前提下，直接复用用户当前 Chrome 中的真实 Dola 登录会话，识别 10s/30s Seedance 2.5 请求差异，验证账户本身允许的 30 秒 T2V，并取得最终视频？
+> 用一个真实账号跑通 Electron 持久登录 → 10s baseline → 30s capability → result lifecycle；确认后再扩展到多账号队列。
 
-## 第一阶段验收 Gate
+## Desktop Gate
 
-- [x] G0：仓库骨架与安全规则建立
-- [ ] G1：扩展在用户当前 Chrome 的 Dola 页面正常出现
-- [ ] G2：扩展捕获并脱敏保存 Seedance 2.5 10 秒请求/响应
-- [ ] G3：识别 submit / polling / result 链
-- [ ] G4：获得可信 10s / 30s 样本并完成结构化 Diff
-- [ ] G5：在账户本身允许的前提下成功提交一次 30s T2V
-- [ ] G6：成功取得并保存最终 MP4，记录验证结果
+- [ ] D0：Electron 主窗口 + Account Manager + persistent partitions
+- [ ] D1：Account A 手动登录后重启仍保持登录；Account B 完全隔离
+- [ ] D2：捕获 Seedance 2.5 10s T2V baseline
+- [ ] D3：在账户本身允许时验证 30s T2V；权限/额度拒绝则记录并停止
+- [ ] D4：SSE / conversation chain / result 生命周期跑通
+- [ ] D5：多账号任务队列（用户明确选择账号，每账号默认串行）
+- [ ] D6：Windows x64 打包，普通用户双击使用
 
-只有真实 evidence 才能把 Gate 标记为 PASS。
+只有真实 evidence 才能标记 Gate PASS。
 
-## 默认入口
+## 账号方案
 
-- `extension/`：**唯一默认入口**，直接运行在当前 Chrome / 当前登录态中。
+每个账号使用独立 Chromium persistent partition：
 
-## Debug fallback
+```text
+Account A -> persist:seedance-account-a
+Account B -> persist:seedance-account-b
+Account C -> persist:seedance-account-c
+```
 
-下面这些仅供开发调试，不是普通测试者入口：
+用户在可见 Dola 页面中手动登录一次，软件不保存 Google 密码/TOTP Secret。
 
-- `npm run debug:observe`
-- `npm run debug:web`
-- `DEBUG_START_WEB.bat`
+## 原 Chrome Extension
 
-Debug fallback 可能启动独立 Playwright Chrome，仅用于定位扩展无法覆盖的问题。
+`extension/` 不删除，继续保留为：
 
-## 暂不做
+- 协议观察器
+- 请求/响应脱敏工具
+- Debug fallback
 
-- 自动注册/批量注册 Dola 账号
-- 验证码或人机验证绕过
-- 绕过账户权限、额度或服务端访问控制
-- 代理池、账号池、批量并发
-- 上传 Cookie、Token、原始 HAR、浏览器 Profile
+但它不再是最终多账号产品架构。
 
-## 技术方向
+## 明确不做
 
-### 默认
+- 自动/批量注册账号
+- CAPTCHA / MFA / 人机验证绕过
+- Google 密码或 TOTP 自动托管
+- 指纹伪造规避风控
+- 自动轮换账户规避额度、速率或付费限制
+- 伪造账户 entitlement
+- 上传 Cookie、Token、Session、原始 HAR、浏览器 Profile
 
-- Chrome Extension Manifest V3
-- `MAIN` world page hook
-- Dola 页面内 Inspector
-- 当前 Chrome 已有 Google / Dola 登录状态
-- `fetch` / `XMLHttpRequest` 观察
-- 请求/响应自动脱敏
-- 结构化 Request Diff
+## Provider 方向
 
-### Debug only
+长期建议保留两条 Provider：
 
-- Node.js 20+
-- TypeScript
-- Playwright / CDP
+1. **Dola Web Provider**：多账号 Session、网页能力、任务观察与结果管理；
+2. **BytePlus Seedance Provider**：未来作为官方 Seedance 2.5 API 稳定生产线路。
 
-## 参考项目
+## 参考
 
-- `chuansd/doubao-international`：Dola 视频请求、duration、VID/CDN/结果解析
-- `diegosouzapw/OmniRoute`：Dola Web Session / Cookie Provider 思路
-- `WeiJunn/doubaoAssistant`：Dola 素材解析与本地状态管理
-
-## 安全说明
-
-这是公开仓库。真实凭据和原始抓包必须只留在本地。扩展不采集 Cookie/Authorization headers，并对常见 token/session/signature/fingerprint 字段做脱敏。
-
-详见：
-
-- `extension/README.md`
-- `AGENTS.md`
-- `docs/PROJECT_CONTRACT.md`
-- `docs/ARCHITECTURE.md`
-- `docs/REQUEST_ANALYSIS.md`
-- `docs/TEST_LOG.md`
+- ByteDance Seedance 2.5 官方能力：单次最高 30 秒
+- `chuansd/doubao-international`
+- `Lolita-cybe/doubao-dola-watermark-helper`（目标软件第三方 notices 中声明 MIT 来源）
+- `T8mars/ComfyUI_Seedance`
+- 用户提供的“小柴多开器”样本 clean-room 静态分析
 
 ## 当前状态
 
-**默认架构已经切换为：当前 Chrome + Chrome Extension + Dola 页面内 Inspector。下一人工 Gate：G1 当前浏览器实测。**
+**项目已正式进入 Electron 多账号桌面版路线。下一步：D0，先完成可以添加账号、打开独立 Dola 会话并持久化登录态的最小桌面壳。**
