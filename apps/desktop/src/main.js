@@ -4,11 +4,16 @@ const { app, BrowserWindow, ipcMain, session } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { createDailyCapacityStore } = require('./shared/daily-capacity');
 
 let mainWindow = null;
 
 function dataPath() {
   return path.join(app.getPath('userData'), 'accounts.json');
+}
+
+function capacityPath() {
+  return path.join(app.getPath('userData'), 'dola-daily-capacity.jsonl');
 }
 
 function normalizeAccount(value) {
@@ -98,6 +103,12 @@ app.whenReady().then(() => {
     return deleteAccount(id);
   });
   ipcMain.handle('accounts:clear-session', (_event, id) => clearAccountSession(id));
+  ipcMain.handle('capacity:report', () => createDailyCapacityStore(capacityPath()).report(loadAccounts()));
+  ipcMain.handle('capacity:record-job', (_event, payload) => createDailyCapacityStore(capacityPath()).recordJob(payload || {}));
+  ipcMain.handle('capacity:provider-state', (_event, payload) => createDailyCapacityStore(capacityPath()).recordProviderState(payload || {}));
+  ipcMain.handle('capacity:next-account', (_event, afterAccountId) => {
+    return createDailyCapacityStore(capacityPath()).nextAccount(loadAccounts(), { afterAccountId: String(afterAccountId || '') || null });
+  });
 
   createWindow();
 
